@@ -1,11 +1,12 @@
 const net = require('net');
 
-const { Services } = require('./buisness_logic.js');
-const { File } = require('./classes.js');
+const { Services } = require('./app/buisness_logic.js');
+const { File } = require('./app/classes.js');
 
 const logger = {
     log: msg => console.log(msg)
 };
+
 const service = new Services(logger);
 
 const server = net.createServer(function (connection) {
@@ -127,16 +128,6 @@ const server = net.createServer(function (connection) {
             let folder = data.param;
             folder = service.findFileByExtension(folder);
             let response = {success: true, cmd: data.cmd.slice(0, -2), result: folder}
-            connection.write(JSON.stringify(response));
-        }
-
-        else if (data.cmd === 'saveCurrentStateIn') {
-            await service.saveCurrentState();
-        }
-
-        else if (data.cmd === 'returnToPreviousVersionIn') {
-            service.returnToPreviousVersion();
-            let response = {success: true, cmd: data.cmd.slice(0, -2)}
             connection.write(JSON.stringify(response));
         }
 
