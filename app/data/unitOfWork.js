@@ -1,8 +1,12 @@
 const sql = require('mssql');
-require('msnodesqlv8');
 
-import config from './app/config/db.config';
-import FileRepository from './fileRepository';
+const config = require('../config/db.config');
+const mappers = require('./mappers');
+
+const { FileRepository } = require('./repositories/fileRepository');
+const { UserRepository } = require('./repositories/userRepository');
+const { FolderRepository } = require('./repositories/folderRepository');
+const { RatingRepository } = require('./repositories/ratingRepository');
 
 class UnitOfWork {
 
@@ -13,14 +17,11 @@ class UnitOfWork {
             this.logger.log('Error: ', err);    
         });
 
-        const conn = new sql.ConnectionPool(config, err => {
-            this.logger.log('Cannot create connection pool. Error: ', err);
-        });
-        this.connectionPool = conn;
-        this.fileRepository = new FileRepository(conn, this.logger);
-    }
-
-    dispose() {
-        this.connectionPool.close();
+        this.fileRepository = new FileRepository(config, mappers.toFile, this.logger);
+        this.userRepository = new UserRepository(config, mappers.toUser, this.logger);
+        this.folderRepository = new FolderRepository(config, mappers.toFolder, this.logger);
+        this.ratingRepository = new RatingRepository(config, mappers.toRating, this.logger);
     }
 }
+
+exports.UnitOfWork = UnitOfWork;

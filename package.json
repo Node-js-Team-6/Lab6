@@ -23,7 +23,6 @@
   },
   "homepage": "https://github.com/Node-js-Team-6/Lab6#readme",
   "dependencies": {
-    "msnodesqlv8": "^2.0.15",
     "mssql": "^6.3.1",
     "net": "^1.0.2",
     "prompt-sync": "^4.2.0",

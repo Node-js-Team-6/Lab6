@@ -1,7 +1,7 @@
 const net = require('net');
 
-const { Services } = require('./app/buisness_logic.js');
-const { File } = require('./app/classes.js');
+const { Services } = require('./app/buisness_logic');
+const { File } = require('./app/data/classes');
 
 const logger = {
     log: msg => console.log(msg)

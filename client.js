@@ -2,10 +2,7 @@ const net = require('net');
 const readline = require('readline');
 const prompt = require('prompt-sync')();
 
-const { Folder } = require('./app/classes.js');
-const { File } = require('./app/classes.js');
-const { Rating } = require("./app/classes.js");
-const { User } = require("./app/classes.js");
+const { File } = require('./app/data/classes.js');
 const getId = () => Math.floor(Math.random() * 1000);
 
 const rl = readline.createInterface({

@@ -1,36 +1,53 @@
-const data = require('./data.js')
+const { UnitOfWork } = require('../app/data/unitOfWork');
 
-const { Folder } = require('./classes.js');
-const { File } = require('./classes.js');
-const { Rating } = require("./classes.js");
-const { User } = require("./classes.js");
+const { Folder } = require('./data/classes');
+const { File } = require('./data/classes');
+const { Rating } = require("./data/classes");
+const { User } = require("./data/classes");
 
 class Services {
     constructor(logger=console) {
-        this.fileRepository = new data.Repositoty('./database/file.json', File.objectify, logger);
-        this.folderRepository = new data.Repositoty('./database/folder.json', Folder.objectify, logger);
-        this.userRepository = new data.Repositoty('./database/user.json', User.objectify, logger);
-        this.ratingRepository = new data.Repositoty('./database/rating.json', Rating.objectify, logger);
+        this.uow = new UnitOfWork(logger);
     }
 
     async addOrUpdateFile(file) {
-        await this.fileRepository.addOrUpdate(file)
+        if(!file.id) {
+            await this.uow.fileRepository.insert(file);
+        }
+        else {
+            await this.uow.fileRepository.update(file);
+        }
     }
-
+ 
     async addOrUpdateRating(rating) {
-        await this.ratingRepository.addOrUpdate(rating);
+        if(!rating.id) {
+            await this.uow.ratingRepository.insert(rating);
+        }
+        else {
+            await this.uow.ratingRepository.update(rating);
+        }
     }
 
     async addOrUpdateFolder(folder) {
-        await this.folderRepository.addOrUpdate(folder)
+        if(!folder.id) {
+            await this.uow.folderRepository.insert(folder);
+        }
+        else {
+            await this.uow.folderRepository.update(folder);
+        }
     }
 
     async addOrUpdateUser(user) {
-        await this.userRepository.addOrUpdate(user)
+        if(!user.id) {
+            await this.uow.userRepository.insert(user);
+        }
+        else {
+            await this.uow.userRepository.update(user);
+        }
     }
 
     async deleteFile(file) {
-        await this.fileRepository.delete(file)
+        await this.uow.fileRepository.delete(file.id);
     }
 
     async deleteFolder(folder) {
@@ -42,45 +59,40 @@ class Services {
             }
         }
 
-        await this.folderRepository.delete(folder)
+        await this.uow.folderRepository.delete(folder.id)
     }
 
     async getChildren(folder){
-        let folderChildren = await this.folderRepository.findAll().filter(f => f.parentId === folder.id);
-        let fileChildren = await this.fileRepository.findAll().filter(f => f.parentId === folder.id);
+        let folderChildren = await this.uow.folderRepository.findByParentId(folder.id);
+        let fileChildren = await this.uow.fileRepository.findByParentId(folder.id);
         for (let c of folderChildren)
         {
-            c.user = this.userRepository.find(c.userId);
+            c.user = this.uow.userRepository.findById(c.userId);
         }
         for (let c of fileChildren)
         {
-            c.user = await this.userRepository.find(c.userId);
-            c.rating = await this.getRating(c);
+            c.user = await this.uow.userRepository.findById(c.userId);
+            c.rating = await this.uow.ratingRepository.getRatingForFile(c.id);
         }
-        folder.children = [...folderChildren, ...fileChildren]
-        console.log(folder.children);
+
+        folder.children = [...folderChildren, ...fileChildren];
     }
 
     async getRoot()
     {
-        let root = await this.folderRepository.find(922);
-        root.user = await this.userRepository.find(root.userId);
-        return root;
+        return await this.uow.folderRepository.findRoot();
     }
 
     async getFolder(id)
     {
-        let folder = await this.folderRepository.find(id);
-        folder.user = await this.userRepository.find(folder.userId);
+        let folder = await this.uow.folderRepository.findById(id);
+        folder.user = await this.uow.userRepository.findById(folder.userId);
         return folder;
     }
 
     async getRating(file)
     {
-        let ratings = await this.ratingRepository.findAll();
-        let filtered = ratings.filter(r => r.fileId === file.id);
-        let sum = filtered.map(r => r.score).reduce((a, b) => a+b, 0)
-        return sum / filtered.length;
+        return await this.uow.ratingRepository.getRatingForFile(file.id);
     }
 
     sortByDownloadCount(folder) {
@@ -123,7 +135,7 @@ class Services {
     async getPath(element, root) {
         if (element.id === root.id)
             return element.name;
-        return await this.getPath(await this.folderRepository.find(element.parentId), root) + '/' + element.name;
+        return await this.getPath(await this.uow.folderRepository.findById(element.parentId), root) + '/' + element.name;
     }
 }
 
