@@ -6,7 +6,6 @@ const { File } = require('./app/data/classes');
 const logger = {
     log: msg => console.log(msg)
 };
-
 const service = new Services(logger);
 
 const server = net.createServer(function (connection) {
@@ -78,7 +77,9 @@ const server = net.createServer(function (connection) {
 
         else if (data.cmd === 'deleteFileIn'){
             await service.deleteFile(data.param);
-            let response = {success: true, cmd: data.cmd.slice(0, -2)};
+            let folder = await service.getFolder(data.param.parentId);
+            await service.getChildren(folder);
+            let response = {success: true, cmd: data.cmd.slice(0, -2), result: folder};
             connection.write(JSON.stringify(response));
         }
 
@@ -113,13 +114,13 @@ const server = net.createServer(function (connection) {
             let folder = data.param;
             service.sortByName(folder);
             let response = {success: true, cmd: data.cmd.slice(0, -2), result: folder};
-        
+
             connection.write(JSON.stringify(response));
         }
 
         else if (data.cmd === 'findFileByNameIn'){
             let folder = data.param;
-            folder = service.findFileByName(folder);
+            folder.children = service.findFileByName(folder, data.search);
             let response = {success: true, cmd: data.cmd.slice(0, -2), result: folder}
             connection.write(JSON.stringify(response));
         }
@@ -128,6 +129,16 @@ const server = net.createServer(function (connection) {
             let folder = data.param;
             folder = service.findFileByExtension(folder);
             let response = {success: true, cmd: data.cmd.slice(0, -2), result: folder}
+            connection.write(JSON.stringify(response));
+        }
+
+        else if (data.cmd === 'saveCurrentStateIn') {
+            await service.saveCurrentState();
+        }
+
+        else if (data.cmd === 'returnToPreviousVersionIn') {
+            service.returnToPreviousVersion();
+            let response = {success: true, cmd: data.cmd.slice(0, -2)}
             connection.write(JSON.stringify(response));
         }
 
@@ -141,7 +152,7 @@ const server = net.createServer(function (connection) {
 
     connection.on('uncaughtException', function (err) {
         logger.log(err);
-    }); 
+    });
 });
 
 server.listen(20202, function() {
